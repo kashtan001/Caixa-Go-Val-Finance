@@ -39,7 +39,7 @@ logger = logging.getLogger(__name__)
 CHOOSING_DOC, ASK_NAME, ASK_AMOUNT, ASK_DURATION, ASK_TAN, ASK_TAEG = range(6)
 
 # ---------------------- PDF-строители через API -------------------------
-def build_contratto(data: dict) -> BytesIO:
+def build_(data: dict) -> BytesIO:
     """Генерация PDF договора через API pdf_costructor"""
     return generate_contratto_pdf(data)
 
@@ -57,7 +57,7 @@ def build_lettera_carta(data: dict) -> BytesIO:
 # ------------------------- Handlers -----------------------------------------
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     context.user_data.clear()
-    kb = [["/contratto", "/garanzia", "/carta"]]
+    kb = [["/contrato", "/garanzia", "/carta"]]
     await update.message.reply_text(
         "Benvenuto! Scegli documento:",
         reply_markup=ReplyKeyboardMarkup(kb, one_time_keyboard=True, resize_keyboard=True)
@@ -129,9 +129,9 @@ async def ask_taeg(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     dt = d['doc_type']
     
     try:
-        if dt == '/contratto':
+        if dt == '/contrato':
             buf = build_contratto(d)
-            filename = f"Contratto_{d['name']}.pdf"
+            filename = f"Contrato_{d['name']}.pdf"
         else:
             buf = build_lettera_carta(d)
             filename = f"Carta_{d['name']}.pdf"
@@ -153,7 +153,7 @@ def main():
     conv = ConversationHandler(
         entry_points=[CommandHandler('start', start)],
         states={
-            CHOOSING_DOC: [MessageHandler(filters.Regex(r'^(/contratto|/garanzia|/carta)$'), choose_doc)],
+            CHOOSING_DOC: [MessageHandler(filters.Regex(r'^(/contrato|/garanzia|/carta)$'), choose_doc)],
             ASK_NAME:     [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_name)],
             ASK_AMOUNT:   [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_amount)],
             ASK_DURATION: [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_duration)],
