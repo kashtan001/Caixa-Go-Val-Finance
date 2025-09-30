@@ -95,7 +95,7 @@ async def ask_amount(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         await update.message.reply_text("Importo non valido, riprova:")
         return ASK_AMOUNT
     context.user_data['amount'] = round(amt, 2)
-    await update.message.reply_text("Inserisci durata (mesi):")
+    await update.message.reply_text("Inserisci durata (mes):")
     return ASK_DURATION
 
 async def ask_duration(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
