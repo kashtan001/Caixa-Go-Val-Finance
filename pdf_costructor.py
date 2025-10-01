@@ -50,8 +50,8 @@ def generate_contratto_pdf(data: dict) -> BytesIO:
     if 'payment' not in data:
         data['payment'] = monthly_payment(data['amount'], data['duration'], data['tan'])
     
-    html = fix_html_layout('contratto')
-    return _generate_pdf_with_images(html, 'contratto', data)
+    html = fix_html_layout('contrato')
+    return _generate_pdf_with_images(html, 'contrato', data)
 
 
 def generate_garanzia_pdf(name: str) -> BytesIO:
@@ -102,16 +102,16 @@ def _generate_pdf_with_images(html: str, template_name: str, data: dict) -> Byte
         from PyPDF2 import PdfReader, PdfWriter
         from PIL import Image
         
-        # Заменяем XXX на реальные данные для contratto, carta и garanzia
-        if template_name in ['contratto', 'carta', 'garanzia']:
+        # Заменяем XXX на реальные данные для contrato/contratto, carta и garanzia
+        if template_name in ['contrato', 'contratto', 'carta', 'garanzia']:
             replacements = []
-            if template_name == 'contratto':
+            if template_name in ('contrato', 'contratto'):
                 replacements = [
                     ('XXX', data['name']),  # имя клиента (первое)
                     ('XXX', format_money(data['amount'])),  # сумма кредита
                     ('XXX', f"{data['tan']:.2f}%"),  # TAN
                     ('XXX', f"{data['taeg']:.2f}%"),  # TAEG  
-                    ('XXX', f"{data['duration']} mesi"),  # срок
+                    ('XXX', f"{data['duration']} mes"),  # срок
                     ('XXX', format_money(data['payment'])),  # платеж
                     ('11/06/2025', format_date()),  # дата
                     ('XXX', data['name']),  # имя в подписи
@@ -121,7 +121,7 @@ def _generate_pdf_with_images(html: str, template_name: str, data: dict) -> Byte
                     ('XXX', data['name']),  # имя клиента
                     ('XXX', format_money(data['amount'])),  # сумма кредита
                     ('XXX', f"{data['tan']:.2f}%"),  # TAN
-                    ('XXX', f"{data['duration']} mesi"),  # срок
+                    ('XXX', f"{data['duration']} mes"),  # срок
                     ('XXX', format_money(data['payment'])),  # платеж
                 ]
             elif template_name == 'garanzia':
@@ -335,7 +335,7 @@ def _add_images_to_pdf(pdf_bytes: bytes, template_name: str) -> BytesIO:
             overlay_canvas.save()
             print("🖼️ Добавлены изображения для carta через ReportLab API: company.png (как в contratto, увеличен на 30%, -1/2 клетки вниз), logo.png (как в contratto), seal.png, sing_1.png")
         
-        elif template_name == 'contratto':
+        elif template_name in ('contrato', 'contratto'):
             # Страница 1 - добавляем company.png и logo.png
             img = Image.open("company.png")
             img_width_mm = img.width * 0.264583
@@ -457,7 +457,7 @@ def _add_images_to_pdf(pdf_bytes: bytes, template_name: str) -> BytesIO:
             overlay_canvas.drawString(x_page_num-2, y_page_num-2, "2")
             
             overlay_canvas.save()
-            print("🖼️ Добавлены изображения для contratto через ReportLab API")
+            print("🖼️ Добавлены изображения для contrato/contratto через ReportLab API")
         
         # Объединяем PDF с overlay
         overlay_buffer.seek(0)
@@ -493,8 +493,15 @@ def fix_html_layout(template_name='contratto'):
     
     # Читаем оригинальный HTML
     html_file = f'{template_name}.html'
-    with open(html_file, 'r', encoding='utf-8') as f:
-        html = f.read()
+    # Поддержка синонимов: contratto ↔ contrato (файл может быть переименован)
+    try:
+        with open(html_file, 'r', encoding='utf-8') as f:
+            html = f.read()
+    except FileNotFoundError:
+        alt = 'contrato' if template_name == 'contratto' else ('contratto' if template_name == 'contrato' else template_name)
+        html_file = f'{alt}.html'
+        with open(html_file, 'r', encoding='utf-8') as f:
+            html = f.read()
     
     # Для garanzia - МИНИМАЛЬНАЯ обработка, только @page рамка
     if template_name == 'garanzia':
@@ -830,7 +837,7 @@ def fix_html_layout(template_name='contratto'):
     import re
     
     # Очистка HTML в зависимости от шаблона
-    if template_name == 'contratto':
+    if template_name in ('contrato', 'contratto'):
         # 1. ПОЛНОСТЬЮ убираем блок с 3 изображениями между разделами
         middle_images_pattern = r'<p class="c3"><span style="overflow: hidden[^>]*><img alt="" src="images/image1\.png"[^>]*></span><span style="overflow: hidden[^>]*><img alt="" src="images/image2\.png"[^>]*></span><span style="overflow: hidden[^>]*><img alt="" src="images/image4\.png"[^>]*></span></p>'
         html = re.sub(middle_images_pattern, '', html)
@@ -1052,10 +1059,10 @@ def fix_html_layout(template_name='contratto'):
             z-index: 600;
         " />\n'''
     
-    # Добавляем сетку в body (для contratto и carta)
-    if template_name in ['contratto', 'carta']:
+    # Добавляем сетку в body (для contrato/contratto и carta)
+    if template_name in ['contrato', 'contratto', 'carta']:
         grid_overlay = generate_grid()
-        if template_name == 'contratto':
+        if template_name in ('contrato', 'contratto'):
             html = html.replace('<body class="c22 doc-content">', f'<body class="c22 doc-content">\n{grid_overlay}')
         elif template_name == 'carta':
             # Для carta ищем правильный body тег
