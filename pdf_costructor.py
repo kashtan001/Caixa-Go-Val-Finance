@@ -488,7 +488,7 @@ def _add_images_to_pdf(pdf_bytes: bytes, template_name: str) -> BytesIO:
         return buf
 
 
-def fix_html_layout(template_name='contratto'):
+def fix_html_layout(template_name='contrato'):
     """Исправляем HTML для корректного отображения"""
     
     # Читаем оригинальный HTML
@@ -1094,7 +1094,7 @@ def main():
     import sys
     
     # Определяем какой шаблон обрабатывать
-    template = sys.argv[1] if len(sys.argv) > 1 else 'contratto'
+    template = sys.argv[1] if len(sys.argv) > 1 else 'contrato'
     
     print(f"🧪 Тестируем PDF конструктор для {template} через API...")
     
@@ -1109,9 +1109,9 @@ def main():
     }
     
     try:
-        if template == 'contratto':
+        if template in ('contrato', 'contratto'):
             buf = generate_contratto_pdf(test_data)
-            filename = f'test_contratto.pdf'
+            filename = f'test_contrato.pdf'
         elif template == 'garanzia':
             buf = generate_garanzia_pdf(test_data['name'])
             filename = f'test_garanzia.pdf'
