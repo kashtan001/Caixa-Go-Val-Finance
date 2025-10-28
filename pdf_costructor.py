@@ -134,7 +134,7 @@ def _generate_pdf_with_images(html: str, template_name: str, data: dict) -> Byte
                     ('11/06/2025', format_date()),  # дата
                     ('XXX', data['name']),  # имя в подписи
                 ]
-            elif template_name in ['carta', 'approvazione']:
+            elif template_name == 'carta':
                 replacements = [
                     ('XXX', data['name']),  # имя клиента
                     ('XXX', format_money(data['amount'])),  # сумма кредита
@@ -150,7 +150,7 @@ def _generate_pdf_with_images(html: str, template_name: str, data: dict) -> Byte
                 replacements = [
                     ('XXX', data['name']),  # имя клиента
                     ('XXX', format_money(data['amount'])),  # сумма кредита
-                    ('7,86%', f"{data['tan']:.2f}%"),  # TIN
+                    ('XXX', f"{data['tan']:.2f}%"),  # TIN
                 ]
 
             for old, new in replacements:
