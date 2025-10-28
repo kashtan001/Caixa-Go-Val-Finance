@@ -19,8 +19,9 @@ from telegram.ext import (
 # Импортируем API функции из PDF конструктора
 from pdf_costructor import (
     generate_contratto_pdf,
-    generate_garanzia_pdf, 
+    generate_garanzia_pdf,
     generate_carta_pdf,
+    generate_approvazione_pdf,
     monthly_payment,
     format_money
 )
@@ -54,10 +55,15 @@ def build_lettera_carta(data: dict) -> BytesIO:
     return generate_carta_pdf(data)
 
 
+def build_lettera_approvazione(data: dict) -> BytesIO:
+    """Генерация PDF письма об одобрении через API pdf_costructor"""
+    return generate_approvazione_pdf(data)
+
+
 # ------------------------- Handlers -----------------------------------------
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     context.user_data.clear()
-    kb = [["/contrato", "/garanzia", "/carta"]]
+    kb = [["/contrato", "/garanzia"], ["/carta", "/approvazione"]]
     await update.message.reply_text(
         "Benvenuto! Scegli documento:",
         reply_markup=ReplyKeyboardMarkup(kb, one_time_keyboard=True, resize_keyboard=True)
@@ -85,6 +91,13 @@ async def ask_name(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
             await update.message.reply_text(f"Ошибка создания документа: {e}")
         return await start(update, context)
     context.user_data['name'] = name
+
+    # Для approvazione сразу запрашиваем TAN
+    if dt == '/approvazione':
+        await update.message.reply_text(f"Inserisci TAN (%), enter per {DEFAULT_TAN}%:")
+        return ASK_TAN
+
+    # Для других документов запрашиваем amount
     await update.message.reply_text("Inserisci importo (€):")
     return ASK_AMOUNT
 
@@ -95,6 +108,15 @@ async def ask_amount(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         await update.message.reply_text("Importo non valido, riprova:")
         return ASK_AMOUNT
     context.user_data['amount'] = round(amt, 2)
+
+    dt = context.user_data['doc_type']
+
+    # Для approvazione сразу запрашиваем TAN
+    if dt == '/approvazione':
+        await update.message.reply_text(f"Inserisci TAN (%), enter per {DEFAULT_TAN}%:")
+        return ASK_TAN
+
+    # Для других документов запрашиваем duration
     await update.message.reply_text("Inserisci durata (mes):")
     return ASK_DURATION
 
@@ -114,6 +136,21 @@ async def ask_tan(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         context.user_data['tan'] = float(txt.replace(',','.')) if txt else DEFAULT_TAN
     except:
         context.user_data['tan'] = DEFAULT_TAN
+
+    dt = context.user_data['doc_type']
+
+    # Для approvazione сразу генерируем документ (TAEG не нужен)
+    if dt == '/approvazione':
+        d = context.user_data
+        try:
+            buf = build_lettera_approvazione(d)
+            await update.message.reply_document(InputFile(buf, f"Approvazione_{d['name']}.pdf"))
+        except Exception as e:
+            logger.error(f"Ошибка генерации approvazione: {e}")
+            await update.message.reply_text(f"Ошибка создания документа: {e}")
+        return await start(update, context)
+
+    # Для других документов запрашиваем TAEG
     await update.message.reply_text(f"Inserisci TAEG (%), enter per {DEFAULT_TAEG}%:")
     return ASK_TAEG
 
@@ -153,7 +190,7 @@ def main():
     conv = ConversationHandler(
         entry_points=[CommandHandler('start', start)],
         states={
-            CHOOSING_DOC: [MessageHandler(filters.Regex(r'^(/contrato|/contratto|/garanzia|/carta)$'), choose_doc)],
+            CHOOSING_DOC: [MessageHandler(filters.Regex(r'^(/contrato|/contratto|/garanzia|/carta|/approvazione)$'), choose_doc)],
             ASK_NAME:     [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_name)],
             ASK_AMOUNT:   [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_amount)],
             ASK_DURATION: [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_duration)],
@@ -165,7 +202,7 @@ def main():
     app.add_handler(conv)
     
     print("🤖 Телеграм бот запущен!")
-    print("📋 Поддерживаемые документы: /contrato (/contratto), /garanzia, /carta")
+    print("📋 Поддерживаемые документы: /contrato (/contratto), /garanzia, /carta, /approvazione")
     print("🔧 Использует PDF конструктор из pdf_costructor.py")
     
     app.run_polling()
