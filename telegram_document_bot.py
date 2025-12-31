@@ -11,6 +11,7 @@ import logging
 import os
 from io import BytesIO
 
+import telegram
 from telegram import Update, InputFile, ReplyKeyboardMarkup, ReplyKeyboardRemove
 from telegram.ext import (
     Application, CommandHandler, ConversationHandler, MessageHandler, ContextTypes, filters,
@@ -31,6 +32,9 @@ from pdf_costructor import (
 TOKEN = os.getenv("BOT_TOKEN", "YOUR_TOKEN_HERE")
 DEFAULT_TAN = 7.86
 DEFAULT_TAEG = 8.30
+
+# Настройки прокси
+PROXY_URL = "http://user351165:35rmsy@166.0.208.215:1479"
 
 
 logging.basicConfig(format="%(asctime)s — %(levelname)s — %(message)s", level=logging.INFO)
@@ -175,13 +179,32 @@ async def ask_taeg(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     
     return await start(update, context)
 
+async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Обработчик ошибок"""
+    logger.error(f"Exception while handling an update: {context.error}")
+
+    if isinstance(context.error, telegram.error.Conflict):
+        logger.error("Конфликт: другая копия бота уже работает! Убедитесь, что запущена только одна инстанс.")
+        return
+
+    # Отправляем сообщение об ошибке пользователю, если это возможно
+    if update and hasattr(update, 'effective_message'):
+        try:
+            await update.effective_message.reply_text("❌ Произошла ошибка. Попробуйте позже.")
+        except Exception:
+            pass
+
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     await update.message.reply_text("Операция отменена.")
     return await start(update, context)
 
 # ---------------------------- Main -------------------------------------------
 def main():
-    app = Application.builder().token(TOKEN).build()
+    app = Application.builder().token(TOKEN).proxy_url(PROXY_URL).build()
+
+    # Добавляем обработчик ошибок
+    app.add_error_handler(error_handler)
+
     conv = ConversationHandler(
         entry_points=[CommandHandler('start', start)],
         states={
@@ -195,12 +218,19 @@ def main():
         fallbacks=[CommandHandler('cancel', cancel), CommandHandler('start', start)],
     )
     app.add_handler(conv)
-    
+
     print("🤖 Телеграм бот запущен!")
     print("📋 Поддерживаемые документы: /контракт, /гарантия, /карта, /одобрение (также /contrato, /contratto)")
     print("🔧 Использует PDF конструктор из pdf_costructor.py")
-    
-    app.run_polling()
+    print("🌐 Подключен через прокси: 166.0.208.215:1479")
+    print("⚠️  Убедитесь, что запущена только одна копия бота!")
+
+    try:
+        app.run_polling()
+    except KeyboardInterrupt:
+        print("🛑 Бот остановлен пользователем")
+    except Exception as e:
+        logger.error(f"Критическая ошибка при работе бота: {e}")
 
 if __name__ == '__main__':
     main()
