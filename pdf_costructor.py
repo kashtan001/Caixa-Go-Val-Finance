@@ -513,7 +513,8 @@ def _add_images_to_pdf(pdf_bytes: bytes, template_name: str) -> BytesIO:
                                    width=logo_scaled_width*mm, height=logo_scaled_height*mm,
                                    mask='auto', preserveAspectRatio=True)
             
-            # Добавляем seal.png в центр 767-й клетки (смещено на 7 клеток вниз и 2 вправо от 590)
+            # seal.png: carta — клетка 792 (на 1 ряд ниже 767); approvazione/compensazione — 767
+            seal_cell = 792 if template_name == 'carta' else 767
             seal_img = Image.open("seal.png")
             seal_width_mm = seal_img.width * 0.264583
             seal_height_mm = seal_img.height * 0.264583
@@ -521,16 +522,16 @@ def _add_images_to_pdf(pdf_bytes: bytes, template_name: str) -> BytesIO:
             seal_scaled_width = seal_width_mm / 5
             seal_scaled_height = seal_height_mm / 5
 
-            row_767 = (767 - 1) // 25  # 767-я клетка (строка 30)
-            col_767 = (767 - 1) % 25   # колонка 16
+            row_seal = (seal_cell - 1) // 25
+            col_seal = (seal_cell - 1) % 25
 
-            x_767_center = (col_767 + 0.5) * cell_width_mm * mm
-            y_767_center = (297 - (row_767 + 0.5) * cell_height_mm) * mm
+            x_seal_center = (col_seal + 0.5) * cell_width_mm * mm
+            y_seal_center = (297 - (row_seal + 0.5) * cell_height_mm) * mm
 
-            x_767 = x_767_center - (seal_scaled_width * mm / 2)
-            y_767 = y_767_center - (seal_scaled_height * mm / 2)
+            x_seal = x_seal_center - (seal_scaled_width * mm / 2)
+            y_seal = y_seal_center - (seal_scaled_height * mm / 2)
 
-            overlay_canvas.drawImage("seal.png", x_767, y_767,
+            overlay_canvas.drawImage("seal.png", x_seal, y_seal,
                                    width=seal_scaled_width*mm, height=seal_scaled_height*mm,
                                    mask='auto', preserveAspectRatio=True)
 
