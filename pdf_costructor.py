@@ -793,8 +793,139 @@ def fix_html_layout(template_name='contrato'):
     
     # Добавляем CSS для правильной разметки (НЕ для garanzia - уже обработана выше)
     elif template_name in ['carta', 'approvazione', 'compensazione']:
-        # Для carta / compensazione - СТРОГО 1 СТРАНИЦА с компактной версткой
-        css_fixes = """
+        # compensazione: компактная вёрстка; carta/approvazione: без overflow:hidden (иначе WeasyPrint обрезает descenders)
+        _carta_approvazione_css = """
+    <style>
+    @page {
+        size: A4;
+        margin: 1cm;
+        border: 2pt solid #00a1e1;
+        padding: 0;
+    }
+    
+    body {
+        font-family: "Roboto Mono", monospace;
+        font-size: 8.5pt;
+        line-height: 1.17;
+        margin: 0;
+        padding: 0 2cm;
+        overflow: visible;
+    }
+    
+    body, table, td, th, p, span, li, div {
+        overflow: visible !important;
+    }
+    
+    p.c1, p.c5, p.c9, p.c12 {
+        height: auto !important;
+        min-height: 0 !important;
+    }
+    
+    * {
+        page-break-after: avoid !important;
+        page-break-inside: avoid !important;
+        page-break-before: avoid !important;
+    }
+    
+    @page:nth(2) {
+        display: none !important;
+    }
+    
+    .c12, .c9, .c20, .c22, .c8 {
+        border: none !important;
+        padding: 2pt !important;
+        margin: 0 !important;
+        width: 100% !important;
+        max-width: none !important;
+    }
+    
+    body.c6.doc-content td.c8 {
+        padding: 32pt 2pt 2pt 2pt !important;
+    }
+    
+    .c12 {
+        max-width: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        width: 100% !important;
+        height: auto !important;
+        overflow: visible !important;
+        border: none !important;
+    }
+    
+    .c6, .c0, .c2, .c3 {
+        margin: 0 !important;
+        padding: 0 !important;
+        text-align: left !important;
+        width: 100% !important;
+        line-height: 1.17 !important;
+        overflow: visible !important;
+    }
+    
+    table {
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+        font-size: 8.5pt !important;
+        border-collapse: collapse !important;
+    }
+    
+    td, th {
+        padding: 1pt !important;
+        margin: 0 !important;
+        font-size: 8.5pt !important;
+        line-height: 1.17 !important;
+        overflow: visible !important;
+    }
+    
+    body.c6.doc-content p, body.c6.doc-content li {
+        line-height: 1.17 !important;
+    }
+    
+    .c15, .c1, .c16, .c6 {
+        background-color: transparent !important;
+        background: none !important;
+    }
+    
+    ul, ol, li {
+        margin: 0 !important;
+        padding: 0 !important;
+        line-height: 1.17 !important;
+    }
+    
+    h1, h2, h3, h4, h5, h6 {
+        margin: 2pt 0 !important;
+        padding: 0 !important;
+        font-size: 10pt !important;
+        line-height: 1.15 !important;
+    }
+    
+    .grid-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 210mm;
+        height: 297mm;
+        pointer-events: none;
+        z-index: 1000;
+        opacity: 0;
+    }
+    
+    .grid-cell {
+        position: absolute;
+        border: none;
+        background-color: transparent;
+        display: none;
+        font-size: 6pt;
+        font-weight: bold;
+        color: transparent;
+        font-family: Arial, sans-serif;
+        box-sizing: border-box;
+    }
+    
+    </style>
+    """
+        _compensazione_compact_css = """
     <style>
     @page {
         size: A4;
@@ -918,6 +1049,10 @@ def fix_html_layout(template_name='contrato'):
     
     </style>
     """
+        if template_name == 'compensazione':
+            css_fixes = _compensazione_compact_css
+        else:
+            css_fixes = _carta_approvazione_css
         if template_name == 'compensazione':
             css_fixes += """
     <style>
